@@ -17,6 +17,10 @@ Route::get('/user', function () {
     return view('userform');
 });
 
+// Profile management
+Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
+Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+
 
 Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/create', [App\Http\Controllers\CourseController::class, 'create'])->name('courses.create');
