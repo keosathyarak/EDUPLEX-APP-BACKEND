@@ -241,15 +241,15 @@
 
     {{-- PROFILE --}}
     <a href="{{ route('profile.edit') }}" class="profile-box d-flex align-items-center gap-3 text-decoration-none border-bottom border-secondary border-opacity-10">
-        <img src="{{ auth()->user()->profile_picture_url }}" 
+    <img src="{{ optional(auth()->user())->profile_picture_url ?? asset('images/default-avatar.png') }}" 
              class="rounded-circle border border-2 border-primary" 
              style="width: 48px; height: 48px; object-fit: cover;">
         <div class="overflow-hidden">
             <div class="text-white fw-semibold text-truncate">
-                {{ auth()->user()->name ?? __('Guest User') }}
+            {{ optional(auth()->user())->name ?? __('Guest User') }}
             </div>
             <small class="text-secondary d-block text-truncate">
-                {{ auth()->user()->email ?? '' }}
+            {{ optional(auth()->user())->email ?? '' }}
             </small>
         </div>
     </a>
