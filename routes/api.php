@@ -7,6 +7,13 @@ use App\Http\Controllers\Api\AdminAuthController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\CourseController;
 use App\Models\Payment;
+
+
+
+
+
+
+
 /*
 |--------------------------------------------------------------------------
 | CORS Preflight (IMPORTANT FOR FLUTTER WEB)
@@ -66,5 +73,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/profile/upload-image', [AuthController::class, 'updateProfilePicture']);
     Route::post('/generate', [PaymentController::class, 'generate'])->name('generate');
     Route::post('/check', [PaymentController::class, 'check'])->name('check');
+
+    // Admin notifications: recent successful payments for dashboard dropdown
+    Route::get('/admin/recent-payments', [PaymentController::class, 'recentPayments'])->name('admin.recentPayments');
 
 });
