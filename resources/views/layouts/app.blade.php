@@ -415,7 +415,15 @@
     }
 
     // Notification System
-    let latestPaymentId = localStorage.getItem('last_seen_payment_id') || 0;
+    let latestPaymentId = parseInt(localStorage.getItem('last_seen_payment_id')) || 0;
+
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true
+    });
 
     function fetchNotifications() {
         const token = localStorage.getItem('token');
@@ -433,10 +441,14 @@
                 const list = document.getElementById('notificationList');
                 const badge = document.getElementById('notificationBadge');
                 const count = document.getElementById('notificationCount');
-                
+
                 // Get the newest ID from current results
                 const newestId = data.payments[0].id;
-                
+
+                // How many are new since last seen
+                const newPayments = data.payments.filter(p => p.id > latestPaymentId);
+                const newCount = newPayments.length;
+
                 let html = '';
                 data.payments.forEach(p => {
                     const time = new Date(p.created_at).toLocaleTimeString([], { 
@@ -463,28 +475,36 @@
                         </div>
                     `;
                 });
-                
+
                 list.innerHTML = html;
                 count.innerText = data.payments.length;
 
-                // Only show badge if there are payments newer than what we've seen
-                if (newestId > latestPaymentId) {
+                // Show badge count for new payments
+                if (newCount > 0) {
                     badge.classList.remove('d-none');
-                    badge.innerText = data.payments.filter(p => p.id > latestPaymentId).length;
+                    badge.innerText = newCount;
+
+                    // Show a subtle toast when new payments arrive (but not on first load)
+                    if (latestPaymentId !== 0) {
+                        Toast.fire({
+                            icon: 'info',
+                            title: `${newCount} new payment${newCount > 1 ? 's' : ''}`
+                        });
+                    }
                 } else {
                     badge.classList.add('d-none');
                 }
 
-                // Store the newest ID globally for the click handler
+                // Update global newestId for click handler
                 window.currentNewestId = newestId;
             }
         })
         .catch(err => console.error('Notification Error:', err));
     }
 
-    // Initial fetch and every 30 seconds
+    // Initial fetch and poll every 10 seconds for faster alerts
     fetchNotifications();
-    setInterval(fetchNotifications, 30000);
+    setInterval(fetchNotifications, 10000);
 
     // Clear badge and update last seen ID when dropdown opened
     document.getElementById('notificationBtn')?.addEventListener('click', () => {
