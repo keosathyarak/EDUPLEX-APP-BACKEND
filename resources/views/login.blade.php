@@ -7,7 +7,54 @@
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function getApiToken() {
+        const name = 'api_token=';
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const ca = decodedCookie.split(';');
+        for(let i = 0; i < ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        
+        const token = localStorage.getItem('token');
+        if (token) {
+            document.cookie = "api_token=" + encodeURIComponent(token) + "; path=/; SameSite=Lax";
+            return token;
+        }
+        return '';
+    }
+
+    const existingToken = getApiToken();
+    if (existingToken) {
+        fetch('/api/user', {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + existingToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/';
+            } else {
+                document.cookie = 'api_token=; path=/; max-age=0';
+                localStorage.removeItem('token');
+            }
+        })
+        .catch(() => {
+            document.cookie = 'api_token=; path=/; max-age=0';
+            localStorage.removeItem('token');
+        });
+    }
+</script>
 
 <style>
 body{
@@ -40,6 +87,11 @@ body{
 .login-card h2{
     font-weight:700;
 }
+
+.brand-logo{ display:flex; align-items:center; justify-content:center; gap:14px; }
+.brand-logo svg{ width:72px; height:72px; flex-shrink:0; border-radius:12px; }
+.brand-text{ font-size:28px; font-weight:800; color:#fff; letter-spacing:-0.5px; }
+
 
 .form-control{
     border-radius:12px;
@@ -83,8 +135,23 @@ body{
 
 <div class="login-card text-center">
 
-    <h2>EduPlex</h2>
-    <p class="mb-4">Admin Login Portal</p>
+    <div class="brand-logo mb-3">
+        <!-- Simple inline SVG EduPlex logo -->
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <defs>
+                <linearGradient id="g1" x1="0" x2="1">
+                    <stop offset="0%" stop-color="#4f46e5"/>
+                    <stop offset="50%" stop-color="#9333ea"/>
+                    <stop offset="100%" stop-color="#ec4899"/>
+                </linearGradient>
+            </defs>
+            <circle cx="60" cy="60" r="56" fill="url(#g1)" />
+            <text x="60" y="72" text-anchor="middle" font-family="Segoe UI, sans-serif" font-weight="700" font-size="48" fill="#fff">EP</text>
+        </svg>
+        <div class="brand-text">EduPlex</div>
+    </div>
+
+    <p class="mb-4 text-white-50">Admin Login Portal</p>
 
     <div class="mb-3 text-start">
         <label>Email</label>
@@ -134,12 +201,15 @@ function login(){
         method:'POST',
         headers:{
             'Accept':'application/json',
-            'Content-Type':'application/json'
+            'Content-Type':'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            'X-Requested-With': 'XMLHttpRequest'
         },
         body:JSON.stringify({
             email:document.getElementById('email').value,
             password:document.getElementById('password').value
-        })
+        }),
+        credentials: 'include'
     })
     .then(res=>res.json())
     .then(data=>{
@@ -149,6 +219,9 @@ function login(){
         if(data.token){
 
             localStorage.setItem('token',data.token);
+            // The server already sends the cookie, but we can set it here too to be sure
+            // and to make it accessible to JS if needed.
+            document.cookie = 'api_token=' + encodeURIComponent(data.token) + '; path=/; SameSite=Lax';
 
             Swal.fire({
                 icon:'success',
@@ -156,7 +229,7 @@ function login(){
                 timer:1500,
                 showConfirmButton:false
             }).then(()=>{
-                window.location.href="/user";
+                window.location.href = '/';
             });
 
         }else{
