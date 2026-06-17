@@ -18,8 +18,8 @@ Route::get('/user', function () {
 });
 
 // Profile management
-Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
-Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
+Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit')->middleware('auth');
+Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update')->middleware('auth');
 
 // Settings page
 Route::get('/settings', function () {
