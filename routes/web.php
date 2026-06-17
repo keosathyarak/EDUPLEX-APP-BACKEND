@@ -26,6 +26,15 @@ Route::get('/settings', function () {
     return view('settings');
 })->name('settings');
 
+// Language switch (stores locale in session and cookie)
+Route::get('/lang/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'km'])) {
+        session(['app_locale' => $locale]);
+        return redirect()->back()->withCookie(cookie()->forever('app_locale', $locale));
+    }
+    return redirect()->back();
+})->name('locale.switch');
+
 
 Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/create', [App\Http\Controllers\CourseController::class, 'create'])->name('courses.create');
