@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
@@ -11,9 +12,7 @@ Route::get('/login', function(){
 });
 
 
-Route::get('/', function () {
-    return view('dashboard');
-});
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::get('/user', function () {
     return view('userform');
 });
@@ -27,6 +26,9 @@ Route::put('/courses/{id}', [App\Http\Controllers\CourseController::class, 'upda
 Route::delete('/courses/{id}', [App\Http\Controllers\CourseController::class, 'destroy'])->name('courses.destroy');
 Route::get('/payment', [PaymentController::class, 'payment']);
 
+// Reports - payments report view
+Route::get('/reports/payments', [PaymentController::class, 'report'])->name('reports.payments');
+
 
 Route::get('/courses/{course}/lessons', [LessonController::class, 'index'])
     ->name('courses.lessons');
@@ -39,4 +41,7 @@ Route::put('/lessons/{id}', [LessonController::class, 'update'])
 
 Route::delete('/lessons/{id}', [LessonController::class, 'destroy'])
     ->name('lessons.destroy');
+
+Route::post('/lessons/upload-chunk', [LessonController::class, 'uploadChunk'])
+    ->name('lessons.uploadChunk');
     
