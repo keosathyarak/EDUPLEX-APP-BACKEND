@@ -350,6 +350,11 @@
                     <li><a class="dropdown-item" href="{{ route('locale.switch', 'km') }}">ភាសាខ្មែរ</a></li>
                 </ul>
             </div>
+
+            {{-- Theme toggle --}}
+            <button id="themeToggle" class="btn btn-white border shadow-sm ms-2" type="button" title="{{ __('Toggle theme') }}">
+                <i class="bi" id="themeIcon"></i>
+            </button>
         </div>
     </div>
 
@@ -514,6 +519,32 @@
         }
         document.getElementById('notificationBadge')?.classList.add('d-none');
     });
+</script>
+
+<script>
+    (function(){
+        function updateThemeIcon(){
+            const icon = document.getElementById('themeIcon');
+            if(!icon) return;
+            const theme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+            if(theme === 'dark'){
+                icon.className = 'bi bi-sun-fill text-warning';
+            } else {
+                icon.className = 'bi bi-moon-fill';
+            }
+        }
+
+        document.getElementById('themeToggle')?.addEventListener('click', function(){
+            const current = document.documentElement.getAttribute('data-bs-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-bs-theme', next);
+            localStorage.setItem('theme', next);
+            updateThemeIcon();
+        });
+
+        // Initialize icon on load (also called by the inline theme applier earlier)
+        updateThemeIcon();
+    })();
 </script>
 
 @stack('scripts')
