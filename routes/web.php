@@ -21,6 +21,11 @@ Route::get('/user', function () {
 Route::get('/profile', [App\Http\Controllers\ProfileController::class, 'edit'])->name('profile.edit');
 Route::put('/profile', [App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
+// Settings page
+Route::get('/settings', function () {
+    return view('settings');
+})->name('settings');
+
 
 Route::get('/courses', [App\Http\Controllers\CourseController::class, 'index'])->name('courses.index');
 Route::get('/courses/create', [App\Http\Controllers\CourseController::class, 'create'])->name('courses.create');
