@@ -21,6 +21,7 @@
     .err{background:#f8d7da;color:#842029;border-color:#f5c2c7}
     code{background:#f1f1f1;padding:2px 6px;border-radius:6px}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
 <div class="wrap">
@@ -32,8 +33,13 @@
       <div>
         <div class="row">
           <div style="flex:1">
-            <label>Amount (optional)</label>
-            <input id="amount" type="number" step="0.01" placeholder="10.50">
+            <label>Course</label>
+            <select id="courseId">
+              <option value="" disabled selected>Select a course</option>
+              @foreach($courses as $course)
+                <option value="{{ $course->id }}">{{ $course->title }}</option>
+              @endforeach
+            </select>
           </div>
           <div style="width:160px">
             <label>Currency</label>
@@ -42,6 +48,11 @@
               <option value="KHR">KHR</option>
             </select>
           </div>
+        </div>
+
+        <div style="margin-top:10px">
+          <label>Amount (optional)</label>
+          <input id="amount" type="number" step="0.01" placeholder="10.50">
         </div>
 
         <div style="margin-top:10px">
@@ -76,10 +87,17 @@
 
 <script>
   const csrf = document.querySelector('meta[name="csrf-token"]').content;
+  const TOKEN = localStorage.getItem('token');
+
+  if (!TOKEN) {
+      Swal.fire('Login required', 'Please login before generating payment QR codes.', 'warning')
+          .then(() => window.location.href = '/login');
+  }
 
   const amountEl = document.getElementById('amount');
   const currencyEl = document.getElementById('currency');
   const billEl = document.getElementById('billNumber');
+  const courseEl = document.getElementById('courseId');
 
   const btnGenerate = document.getElementById('btnGenerate');
   const btnStop = document.getElementById('btnStop');
@@ -123,9 +141,16 @@
     setStatus('Generating QR...', 'warn');
 
     const payload = {
+      course_id: courseEl.value,
       currency: currencyEl.value,
       billNumber: billEl.value || undefined,
     };
+
+    if (!payload.course_id) {
+      setStatus('Please select a course before generating a QR.', 'err');
+      btnGenerate.disabled = false;
+      return;
+    }
 
     const amountVal = amountEl.value.trim();
     if(amountVal !== '') payload.amount = Number(amountVal);
@@ -137,6 +162,7 @@
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrf,
           'Accept': 'application/json',
+          'Authorization': 'Bearer ' + TOKEN,
         },
         body: JSON.stringify(payload)
       });
@@ -172,8 +198,9 @@
           'Content-Type': 'application/json',
           'X-CSRF-TOKEN': csrf,
           'Accept': 'application/json',
+          'Authorization': 'Bearer ' + TOKEN,
         },
-        body: JSON.stringify({ md5 })
+        body: JSON.stringify({ md5, course_id: courseEl.value })
       });
 
       const json = await res.json();

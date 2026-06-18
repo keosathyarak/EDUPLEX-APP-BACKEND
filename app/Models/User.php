@@ -24,6 +24,10 @@ class User extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = [
+        'profile_picture_url'
+    ];
+
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
@@ -47,6 +51,6 @@ class User extends Authenticatable
             return asset('storage/' . $this->profile_picture);
         }
 
-        return asset('images/default-profile.png');
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name ?? 'U') . '&color=7F9CF5&background=EBF4FF';
     }
 }

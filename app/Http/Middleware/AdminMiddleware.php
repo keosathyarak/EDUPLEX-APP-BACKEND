@@ -9,16 +9,18 @@ class AdminMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!$request->user()) {
-            return response()->json([
-                'message' => 'Unauthenticated.'
-            ], 401);
+        $user = $request->user();
+
+        if (!$user) {
+            return $request->expectsJson() 
+                ? response()->json(['message' => 'Unauthenticated.'], 401) 
+                : redirect('/login');
         }
 
-        if ($request->user()->role !== 'admin') {
-            return response()->json([
-                'message' => 'Unauthorized. Admin access only.'
-            ], 403);
+        if ($user->role !== 'admin') {
+            return $request->expectsJson() 
+                ? response()->json(['message' => 'Unauthorized. Admin access only.'], 403) 
+                : redirect('/')->with('error', 'Unauthorized. Admin access only.');
         }
 
         return $next($request);

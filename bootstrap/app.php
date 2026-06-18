@@ -15,6 +15,11 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // ✅ EXCLUDE API TOKEN FROM ENCRYPTION
+        $middleware->encryptCookies(except: [
+            'api_token',
+        ]);
+
         // ✅ GLOBAL CORS
         $middleware->append(HandleCors::class);
 
@@ -23,11 +28,15 @@ return Application::configure(basePath: dirname(__DIR__))
             EnsureFrontendRequestsAreStateful::class,
         ]);
 
-        // ✅ REGISTER ADMIN MIDDLEWARE (IMPORTANT)
+        // ✅ REGISTER ADMIN + TOKEN AUTH MIDDLEWARE
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'token.auth' => \App\Http\Middleware\TokenAuthMiddleware::class,
         ]);
 
+        $middleware->web(append: [
+            \App\Http\Middleware\SetLocale::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

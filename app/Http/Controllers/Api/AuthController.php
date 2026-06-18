@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -22,7 +23,7 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name ?? 'EduPlex User',
             'email' => $request->email,
-            'password' => $request->password,
+            'password' => Hash::make($request->password),
             'role' => 'user'
         ]);
 
@@ -44,22 +45,30 @@ class AuthController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
+            'name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6|confirmed',
+            'role' => 'nullable|in:user,admin',
+            'profile_picture' => 'nullable|image|max:2048'
         ]);
 
-        $admin = User::create([
-            'name' => $request->name,
+        $data = [
+            'name' => $request->name ?? 'EduPlex User',
             'email' => $request->email,
-            'password' => $request->password,
-            'role' => 'admin'
-        ]);
+            'password' => Hash::make($request->password),
+            'role' => $request->role ?? 'user'
+        ];
+
+        if ($request->hasFile('profile_picture')) {
+            $data['profile_picture'] = $request->file('profile_picture')->store('profiles', 'public');
+        }
+
+        $user = User::create($data);
 
         return response()->json([
             'success' => true,
-            'message' => 'Admin created successfully',
-            'admin' => $admin
+            'message' => 'User created successfully',
+            'user' => $user
         ]);
     }
 
@@ -80,14 +89,20 @@ class AuthController extends Controller
             ], 401);
         }
 
+        // Revoke all previous tokens for this user
         $user->tokens()->delete();
+        
+        // Create new token
         $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Create the cookie
+        $cookie = cookie('api_token', $token, 1440, '/', null, false, false, false, 'Lax');
 
         return response()->json([
             'success' => true,
             'token' => $token,
             'user' => $user
-        ]);
+        ])->withCookie($cookie);
     }
 
    // ================= UPDATE PROFILE PICTURE =================
@@ -124,7 +139,19 @@ public function updateProfilePicture(Request $request)
         }
 
         return response()->json([
-            'users' => User::latest()->get()
+            'users' => User::latest()->paginate(10)
+        ]);
+    }
+
+    // ================= SHOW USER =================
+    public function show(Request $request, $id)
+    {
+        if (!$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        return response()->json([
+            'user' => User::findOrFail($id)
         ]);
     }
 
@@ -141,13 +168,21 @@ public function updateProfilePicture(Request $request)
             'name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
             'password' => 'nullable|min:6|confirmed',
-            'role' => 'nullable|in:user,admin'
+            'role' => 'nullable|in:user,admin',
+            'profile_picture' => 'nullable|image|max:2048'
         ]);
 
         $data = $request->only(['name', 'email', 'role']);
 
         if ($request->password) {
-            $data['password'] = $request->password;
+            $data['password'] = Hash::make($request->password);
+        }
+
+        if ($request->hasFile('profile_picture')) {
+            if ($user->profile_picture) {
+                Storage::disk('public')->delete($user->profile_picture);
+            }
+            $data['profile_picture'] = $request->file('profile_picture')->store('profiles', 'public');
         }
 
         $user->update($data);
@@ -165,11 +200,16 @@ public function updateProfilePicture(Request $request)
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        User::findOrFail($id)->delete();
+        $user = User::findOrFail($id);
+        
+        // Revoke all tokens before deleting user
+        $user->tokens()->delete();
+        
+        $user->delete();
 
         return response()->json([
             'success' => true,
-            'message' => 'User deleted successfully'
+            'message' => 'User and all their active sessions deleted successfully'
         ]);
     }
     // ================= UPDATE OWN PROFILE =================
@@ -202,11 +242,25 @@ public function updateProfile(Request $request)
     // ================= LOGOUT =================
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if ($user) {
+            // Revoke all tokens to be sure
+            $user->tokens()->delete();
+
+            // Also logout from the web guard
+            auth()->guard('web')->logout();
+            
+            // Invalidate session if it exists
+            if ($request->hasSession()) {
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+            }
+        }
 
         return response()->json([
             'success' => true,
             'message' => 'Logged out successfully'
-        ]);
+        ])->withoutCookie(cookie()->forget('api_token'));
     }
 }

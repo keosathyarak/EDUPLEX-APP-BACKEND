@@ -257,7 +257,7 @@
             <div style="font-size:12px;color:#9ca3af;">admin@eduplex.com</div>
           </div>
         </div>
-        <button class="btn btn-sm btn-outline-light" type="button">
+        <button class="btn btn-sm btn-outline-light" type="button" onclick="logoutUser()">
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </div>
@@ -463,8 +463,54 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   <script>
+    function logoutUser() {
+        Swal.fire({
+            title: 'Logout?',
+            text: "You will need to sign in again to access the dashboard.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, logout'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const token = localStorage.getItem('token');
+
+                // Clear tokens immediately and thoroughly
+                localStorage.removeItem('token');
+                document.cookie = "api_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+                document.cookie = "api_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax";
+
+                if (!token) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                Swal.fire({
+                    title: 'Signing out...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + token,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .finally(() => {
+                    window.location.href = '/login';
+                });
+            }
+        });
+    }
+
     // Mobile sidebar toggle
     const btnMenu = document.getElementById('btnMenu');
     const sidebar = document.getElementById('sidebar');
